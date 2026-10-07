@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>Craftlands 3D v2.1 - Optimized</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1d16;
+      --panel: rgba(21, 33, 28, 0.94);
+      --accent: #e8bd5d;
+      --light: #f3ecd2;
+      --good: #4bd97f;
+      --danger: #d95f5f;
+      --shadow: rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; 
+      height: 100%;
+      background: #0a0f0c;
+      color: var(--light);
+      font-family: 'Kanit', 'Segoe UI', sans-serif;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #1d3828 0%, #111d18 40%, #070d0c 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      image-rendering: pixelated;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      font-size: 14px;
+    }
+
+    .panel {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 24px var(--shadow);
+      border-radius: 10px;
+      backdrop-filter: blur(6px);
+      padding: 12px;
+    }
+
+    #topbar {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      width: min(280px, 38vw);
+    }
+
+    .stat-bar {
+      height: 14px;
+      border-radius: 7px;
+      background: rgba(0,0,0,0.4);
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.1);
+      margin: 6px 0 2px 0;
+    }
+
+    .stat-bar > i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #ff5a5a, #ffd166, #76f39d);
+      transition: width 0.15s ease;
+    }
+
+    .stat-bar .label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+
+    .stat-info {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    #inventory {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(520px, 94vw);
+      max-height: 80vh;
+      overflow-y: auto;
+      display: none;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tabs button {
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--light);
+      border-radius: 6px;
+      padding: 7px 12px;
+      font: inherit;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+
+    .tabs button:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .tabs button.active {
+      background: rgba(232,189,93,0.2);
+      border-color: var(--accent);
+    }
+
+    .slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .slot {
+      position: relative;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(47,68,58,0.8), rgba(20,30,26,0.8));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      pointer-events: auto;
+    }
+
+    .slot:hover {
+      transform: translateY(-2px);
+      border-color: rgba(232,189,93,0.4);
+    }
+
+    .slot.hot {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(232,189,93,0.25);
+    }
+
+    .slot .count {
+      position: absolute;
+      right: 3px;
+      bottom: 1px;
+      font-size: 10px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.6);
+      border-radius: 4px;
+      padding: 1px 4px;
+      line-height: 1;
+    }
+
+    .slot .key {
+      position: absolute;
+      left: 3px;
+      top: 1px;
+      font-size: 9px;
+      opacity: 0.6;
+    }
+
+    .section {
+      margin-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 10px;
+    }
+
+    .section h3 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .recipe {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 12px;
+    }
+
+    .recipe strong {
+      font-weight: 600;
+    }
+
+    .recipe small {
+      display: block;
+      opacity: 0.65;
+      margin-top: 2px;
+      font-size: 10px;
+    }
+
+    .recipe button {
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(75,217,127,0.15);
+      color: var(--good);
+      border-radius: 4px;
+      padding: 5px 10px;
+      font: inherit;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.1s ease;
+      min-width: 60px;
+    }
+
+    .recipe button:hover {
+      background: rgba(75,217,127,0.25);
+    }
+
+    .recipe button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #toast {
+      position: absolute;
+      left: 50%;
+      top: 70px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.65);
+      color: var(--light);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-weight: 600;
+    }
+
+    #quickActions {
+      position: absolute;
+      left: 12px;
+      bottom: 18px;
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+    }
+
+    #quickActions button {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      padding: 0;
+      font-size: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg, rgba(47,68,58,0.9), rgba(20,30,26,0.9));
+      color: var(--light);
+      cursor: pointer;
+      transition: all 0.1s ease;
+      font-weight: 600;
+    }
+
+    #quickActions button:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+
+    #crosshair {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(255,255,255,0.8);
+    }
+
+    #crosshair::before {
+      width: 1.5px;
+      height: 16px;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+    }
+
+    #crosshair::after {
+      width: 16px;
+      height: 1.5px;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .stat-text {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 640px) {
+      #topbar { width: min(200px, 52vw); font-size: 12px; }
+      .stat-bar { height: 12px; }
+      .slots { grid-template-columns: repeat(4, minmax(40px, 1fr)); }
+      .slot { min-height: 46px; font-size: 20px; }
+      #quickActions button { width: 40px; height: 40px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div id="topbar" class="panel">
+      <div style="font-size:11px; opacity:0.8; margin-bottom:2px;">❤️ Health</div>
+      <div class="stat-bar"><i id="hpBar" style="width:100%; background:linear-gradient(90deg,#ff6b6b,#ff8c8c)"></i><span class="label" id="hpLabel">100/100</span></div>
+
+      <div style="font-size:11px; opacity:0.8; margin-top:6px; margin-bottom:2px;">🍖 Hunger</div>
+      <div class="stat-bar"><i id="foodBar" style="width:100%; background:linear-gradient(90deg,#ffb347,#ffd166)"></i><span class="label" id="foodLabel">100/100</span></div>
+
+      <div style="font-size:11px; opacity:0.8; margin-top:6px; margin-bottom:2px;">⚡ Stamina</div>
+      <div class="stat-bar"><i id="staminaBar" style="width:100%; background:linear-gradient(90deg,#7ae0ff,#39d0ff)"></i><span class="label" id="staminaLabel">100/100</span></div>
+
+      <div class="stat-info" id="levelInfo">Lv: 1 | Exp: 0/100</div>
+    </div>
+
+    <div id="toast"></div>
+
+    <div id="inventory" class="panel">
+      <div class="tabs">
+        <button class="active" data-tab="bag">🎒 Bag</button>
+        <button data-tab="craft">🛠️ Craft</button>
+        <button data-tab="stats">🧍 Stats</button>
+      </div>
+      <div id="inventoryContent"></div>
+    </div>
+
+    <div id="quickActions">
+      <button id="useBtn" title="Use (Space)">🖐️</button>
+      <button id="attackBtn" title="Attack (F)">⚔️</button>
+      <button id="invBtn" title="Inventory (E)">🎒</button>
+    </div>
+
+    <div id="crosshair"></div>
+  </div>
+
+  <script>
+    // ============== CONSTANTS ==============
+    const TILE = 32;
+    const MAX_INV = 24;
+    const WORLD_W = 120;
+    const WORLD_H = 80;
+    const CHUNK_SIZE = 16;
+
+    const ITEMS = {
+      wood: { name: 'Wood', icon: '🪵', edible: false },
+      stone: { name: 'Stone', icon: '🪨', edible: false },
+      iron: { name: 'Iron Ore', icon: '⛓️', edible: false },
+      coal: { name: 'Coal', icon: '⚫', edible: false },
+      sapling: { name: 'Sapling', icon: '🌱', edible: false },
+      plank: { name: 'Plank', icon: '📦', edible: false },
+      stick: { name: 'Stick', icon: '🪵', edible: false },
+      berry: { name: 'Berry', icon: '🫐', edible: true, food: 12 },
+      food: { name: 'Food', icon: '🍖', edible: true, food: 20 },
+      axe: { name: 'Axe', icon: '🪓', edible: false, tool: true },
+      pickaxe: { name: 'Pickaxe', icon: '⛏️', edible: false, tool: true },
+      sword: { name: 'Sword', icon: '🗡️', edible: false, tool: true },
+      campfire: { name: 'Campfire', icon: '🔥', edible: false },
+      chest: { name: 'Chest', icon: '📦', edible: false },
+      diamond: { name: 'Diamond', icon: '💎', edible: false }
+    };
+
+    const RECIPES = [
+      { out: 'plank', need: { wood: 2 }, n: 1 },
+      { out: 'stick', need: { plank: 1 }, n: 2 },
+      { out: 'axe', need: { stick: 2, stone: 3 }, n: 1 },
+      { out: 'pickaxe', need: { stick: 2, stone: 4 }, n: 1 },
+      { out: 'sword', need: { stick: 2, stone: 5 }, n: 1 },
+      { out: 'campfire', need: { wood: 8, stone: 4 }, n: 1 },
+      { out: 'chest', need: { plank: 8 }, n: 1 },
+      { out: 'food', need: { berry: 3 }, n: 1 }
+    ];
+
+    // ============== STATE ==============
+    const state = {
+      player: {
+        x: 10, y: 10,
+        hp: 100, maxHp: 100,
+        hunger: 100, stamina: 100,
+        lv: 1, xp: 0, nextXp: 100,
+        speed: 2.5,
+        facing: { x: 1, y: 0 },
+        inventory: [],
+        selected: 0
+      },
+      world: null,
+      camera: { x: 0, y: 0 },
+      keys: {},
+      mousePos: { x: 0, y: 0 },
+      inventoryOpen: false,
+      tab: 'bag',
+      lastTime: 0,
+      toastTimer: null,
+      attackCooldown: 0,
+      useCooldown: 0
+    };
+
+    // ============== CANVAS SETUP ==============
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+    ctx.imageSmoothingEnabled = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // ============== UTILITIES ==============
+    function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+    function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+    function worldToScreen(x, y) {
+      const cx = state.camera.x;
+      const cy = state.camera.y;
+      return {
+        x: (x - cx) * TILE + canvas.width / 2,
+        y: (y - cy) * TILE + canvas.height / 2
+      };
+    }
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.opacity = '1';
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1400);
+    }
+
+    // ============== WORLD GENERATION ==============
+    function createWorld() {
+      const w = WORLD_W, h = WORLD_H;
+      const tiles = new Uint8Array(w * h);
+      const objects = new Uint8Array(w * h);
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = y * w + x;
+          const noise = (Math.sin(x * 0.1) + Math.cos(y * 0.12) + Math.sin((x + y) * 0.08)) * 0.5 + 0.5;
+
+          tiles[idx] = noise > 0.55 ? 1 : 0; // grass/dirt
+
+          if (Math.random() < 0.018 && tiles[idx] !== 2) objects[idx] = 1; // tree
+          if (Math.random() < 0.012 && tiles[idx] === 0) objects[idx] = Math.random() < 0.5 ? 2 : 3; // ore
+        }
+      }
+
+      return { w, h, tiles, objects, startX: 12, startY: 12 };
+    }
+
+    // ============== INVENTORY ==============
+    function ensureInventory() {
+      while (state.player.inventory.length < MAX_INV) {
+        state.player.inventory.push(null);
+      }
+    }
+
+    function addItem(id, cnt = 1) {
+      const item = ITEMS[id];
+      if (!item) return false;
+
+      for (let i = 0; i < state.player.inventory.length; i++) {
+        const slot = state.player.inventory[i];
+        if (slot && slot.id === id) {
+          slot.count += cnt;
+          return true;
+        }
+      }
+
+      for (let i = 0; i < state.player.inventory.length; i++) {
+        if (!state.player.inventory[i]) {
+          state.player.inventory[i] = { id, count: cnt };
+          return true;
+        }
+      }
+
+      toast('❌ Inventory full!');
+      return false;
+    }
+
+    function removeItem(id, cnt = 1) {
+      for (let i = 0; i < state.player.inventory.length; i++) {
+        const slot = state.player.inventory[i];
+        if (!slot || slot.id !== id) continue;
+        if (slot.count <= cnt) {
+          state.player.inventory[i] = null;
+          return true;
+        }
+        slot.count -= cnt;
+        return true;
+      }
+      return false;
+    }
+
+    function countItem(id) {
+      let total = 0;
+      for (const slot of state.player.inventory) {
+        if (slot && slot.id === id) total += slot.count;
+      }
+      return total;
+    }
+
+    function hasEnough(need) {
+      for (const key in need) {
+        if (countItem(key) < need[key]) return false;
+      }
+      return true;
+    }
+
+    function craftRecipe(recipe) {
+      if (!hasEnough(recipe.need)) {
+        toast('❌ Not enough materials!');
+        return;
+      }
+      for (const key in recipe.need) removeItem(key, recipe.need[key]);
+      addItem(recipe.out, recipe.n || 1);
+      gainXP(5);
+      toast(`✅ Crafted ${ITEMS[recipe.out]?.name || recipe.out}!`);
+      renderInventory();
+    }
+
+    function gainXP(xp) {
+      state.player.xp += xp;
+      if (state.player.xp >= state.player.nextXp) {
+        state.player.lv++;
+        state.player.xp = 0;
+        state.player.maxHp += 5;
+        state.player.hp = state.player.maxHp;
+        toast(`🎉 Level up to ${state.player.lv}!`);
+      }
+    }
+
+    // ============== UI RENDERING ==============
+    function renderInventory() {
+      const content = document.getElementById('inventoryContent');
+      const tab = state.tab;
+      let html = '';
+
+      if (tab === 'bag') {
+        html = '<div class="slots">';
+        for (let i = 0; i < state.player.inventory.length; i++) {
+          const slot = state.player.inventory[i];
+          const item = slot ? ITEMS[slot.id] : null;
+          const selected = i === state.player.selected;
+          html += `<div class="slot ${selected ? 'hot' : ''}" data-idx="${i}">
+            <span class="key">${i + 1}</span>
+            ${item ? item.icon : ''}
+            ${slot ? `<span class="count">${slot.count}</span>` : ''}
+          </div>`;
+        }
+        html += '</div>';
+      }
+
+      if (tab === 'craft') {
+        html = '<div class="section"><h3>Recipes</h3>';
+        for (const recipe of RECIPES) {
+          const item = ITEMS[recipe.out];
+          const needList = Object.entries(recipe.need)
+            .map(([k, v]) => `${ITEMS[k].icon}${v}`)
+            .join(' + ');
+          const ok = hasEnough(recipe.need);
+          html += `<div class="recipe">
+            <div>
+              <strong>${item.icon} ${item.name}</strong>
+              <small>Need: ${needList}</small>
+            </div>
+            <button data-craft="${recipe.out}" ${ok ? '' : 'disabled'}>Make</button>
+          </div>`;
+        }
+        html += '</div>';
+      }
+
+      if (tab === 'stats') {
+        const selected = state.player.selected < state.player.inventory.length 
+          ? state.player.inventory[state.player.selected] : null;
+        html = `<div class="stat-text">
+          <b>Level:</b> ${state.player.lv}<br>
+          <b>Health:</b> ${Math.round(state.player.hp)}/${state.player.maxHp}<br>
+          <b>Hunger:</b> ${Math.round(state.player.hunger)}/100<br>
+          <b>Stamina:</b> ${Math.round(state.player.stamina)}/100<br>
+          <b>XP:</b> ${state.player.xp}/${state.player.nextXp}<br>
+          <b>Selected:</b> ${selected ? ITEMS[selected.id]?.name : 'None'}
+        </div>`;
+      }
+
+      content.innerHTML = html;
+
+      // Events
+      content.querySelectorAll('.slot').forEach(el => {
+        el.addEventListener('click', () => {
+          state.player.selected = Number(el.dataset.idx);
+          renderInventory();
+        });
+      });
+
+      content.querySelectorAll('[data-craft]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const recipe = RECIPES.find(r => r.out === btn.dataset.craft);
+          if (recipe) craftRecipe(recipe);
+        });
+      });
+    }
+
+    function updateHUD() {
+      const p = state.player;
+      document.getElementById('hpBar').style.width = `${(p.hp / p.maxHp) * 100}%`;
+      document.getElementById('hpLabel').textContent = `${Math.round(p.hp)}/${p.maxHp}`;
+      document.getElementById('foodBar').style.width = `${(p.hunger / 100) * 100}%`;
+      document.getElementById('foodLabel').textContent = `${Math.round(p.hunger)}/100`;
+      document.getElementById('staminaBar').style.width = `${(p.stamina / 100) * 100}%`;
+      document.getElementById('staminaLabel').textContent = `${Math.round(p.stamina)}/100`;
+      document.getElementById('levelInfo').textContent = `Lv: ${p.lv} | Exp: ${p.xp}/${p.nextXp}`;
+    }
+
+    function openInventory() {
+      state.inventoryOpen = !state.inventoryOpen;
+      document.getElementById('inventory').style.display = state.inventoryOpen ? 'block' : 'none';
+      if (state.inventoryOpen) renderInventory();
+    }
+
+    // ============== GAMEPLAY ==============
+    function getSelectedItem() {
+      const slot = state.player.inventory[state.player.selected];
+      return slot ? slot.id : null;
+    }
+
+    function canMoveTo(x, y) {
+      const w = state.world.w;
+      const h = state.world.h;
+      const xi = Math.floor(x);
+      const yi = Math.floor(y);
+      if (xi < 0 || yi < 0 || xi >= w || yi >= h) return false;
+      const tile = state.world.tiles[yi * w + xi];
+      return tile !== undefined;
+    }
+
+    function interact() {
+      const p = state.player;
+      const tx = Math.floor(p.x + p.facing.x * 1.2);
+      const ty = Math.floor(p.y + p.facing.y * 1.2);
+      const w = state.world.w;
+      if (tx < 0 || ty < 0 || tx >= w || ty >= state.world.h) return;
+
+      const obj = state.world.objects[ty * w + tx];
+      const id = getSelectedItem();
+
+      if (obj === 1 && (id === 'axe' || !id)) { // tree
+        state.world.objects[ty * w + tx] = 0;
+        addItem('wood', 2);
+        gainXP(3);
+        toast('🌲 Got wood!');
+      } else if ((obj === 2 || obj === 3) && id === 'pickaxe') { // ore
+        state.world.objects[ty * w + tx] = 0;
+        addItem(obj === 2 ? 'stone' : 'iron', 1);
+        gainXP(4);
+        toast('⛏️ Got ore!');
+      } else if (!obj && id && (id === 'campfire' || id === 'chest')) {
+        state.world.objects[ty * w + tx] = id === 'campfire' ? 10 : 11;
+        removeItem(id, 1);
+        toast(`✅ Placed ${ITEMS[id].name}`);
+      } else {
+        toast('❌ Nothing to do here');
+      }
+    }
+
+    function attack() {
+      if (state.attackCooldown > 0) return;
+      state.attackCooldown = 0.3;
+      const p = state.player;
+      const tx = Math.floor(p.x + p.facing.x * 1.3);
+      const ty = Math.floor(p.y + p.facing.y * 1.3);
+      const idx = ty * state.world.w + tx;
+      const obj = state.world.objects[idx];
+
+      if (obj === 1 || obj === 2 || obj === 3) {
+        state.world.objects[idx] = 0;
+        const mat = obj === 1 ? 'wood' : 'stone';
+        addItem(mat, 1);
+        gainXP(2);
+      }
+    }
+
+    function useItem() {
+      const id = getSelectedItem();
+      if (!id) return;
+
+      const item = ITEMS[id];
+      if (!item) return;
+
+      if (item.edible) {
+        state.player.hunger = clamp(state.player.hunger + (item.food || 15), 0, 100);
+        removeItem(id, 1);
+        toast(`🍴 Ate ${item.name}`);
+        renderInventory();
+      } else if (item.tool) {
+        interact();
+      }
+    }
+
+    // ============== PHYSICS & UPDATE ==============
+    function update(dt) {
+      const p = state.player;
+      const w = state.world;
+      let dx = 0, dy = 0;
+
+      if (state.keys['KeyW'] || state.keys['ArrowUp']) dy -= 1;
+      if (state.keys['KeyS'] || state.keys['ArrowDown']) dy += 1;
+      if (state.keys['KeyA'] || state.keys['ArrowLeft']) dx -= 1;
+      if (state.keys['KeyD'] || state.keys['ArrowRight']) dx += 1;
+
+      const len = Math.hypot(dx, dy) || 1;
+      const moving = dx !== 0 || dy !== 0;
+
+      if (moving) {
+        const isSprint = state.keys['ShiftLeft'] || state.keys['ShiftRight'];
+        const speedMul = isSprint ? 1.8 : 1;
+        const step = p.speed * speedMul * dt;
+
+        const nx = p.x + (dx / len) * step;
+        const ny = p.y + (dy / len) * step;
+
+        if (canMoveTo(nx, p.y)) p.x = nx;
+        if (canMoveTo(p.x, ny)) p.y = ny;
+
+        p.facing.x = dx / len;
+        p.facing.y = dy / len;
+        p.stamina = clamp(p.stamina - dt * (isSprint ? 20 : 8), 0, 100);
+      } else {
+        p.stamina = clamp(p.stamina + dt * 12, 0, 100);
+      }
+
+      // Hunger & Health
+      p.hunger = clamp(p.hunger - dt * 1.6, 0, 100);
+      if (p.hunger <= 0) {
+        p.hp = clamp(p.hp - dt * 10, 0, p.maxHp);
+      } else if (p.hunger > 50) {
+        p.hp = clamp(p.hp + dt * 4, 0, p.maxHp);
+      }
+
+      if (p.hp <= 0) {
+        p.hp = p.maxHp;
+        p.x = w.startX;
+        p.y = w.startY;
+        p.hunger = 100;
+        toast('💀 You died! Respawned.');
+      }
+
+      state.attackCooldown = clamp(state.attackCooldown - dt, 0, 1);
+      state.useCooldown = clamp(state.useCooldown - dt, 0, 1);
+
+      // Camera
+      state.camera.x = p.x - (canvas.width / TILE / 2) * 0.5;
+      state.camera.y = p.y - (canvas.height / TILE / 2) * 0.5;
+
+      updateHUD();
+    }
+
+    // ============== RENDERING ==============
+    function render() {
+      const w = state.world;
+      const p = state.player;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Tiles
+      const sw = Math.ceil(canvas.width / TILE) + 2;
+      const sh = Math.ceil(canvas.height / TILE) + 2;
+      const sx = Math.floor(state.camera.x);
+      const sy = Math.floor(state.camera.y);
+
+      for (let y = sy; y < sy + sh && y < w.h; y++) {
+        for (let x = sx; x < sx + sw && x < w.w; x++) {
+          if (x < 0 || y < 0) continue;
+          const idx = y * w.w + x;
+          const scr = worldToScreen(x, y);
+
+          ctx.fillStyle = w.tiles[idx] === 1 ? '#7ecc6d' : '#6d8a5f';
+          ctx.fillRect(scr.x, scr.y, TILE, TILE);
+
+          const obj = w.objects[idx];
+          if (obj === 1) { // tree
+            ctx.fillStyle = '#3f6f34';
+            ctx.fillRect(scr.x + 8, scr.y + 4, 16, 20);
+            ctx.fillStyle = '#4cae52';
+            ctx.beginPath();
+            ctx.arc(scr.x + 16, scr.y + 12, 12, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (obj === 2) { // stone ore
+            ctx.fillStyle = '#4d4d4d';
+            ctx.fillRect(scr.x + 6, scr.y + 8, 20, 18);
+            ctx.fillStyle = '#8a8a8a';
+            ctx.beginPath();
+            ctx.arc(scr.x + 16, scr.y + 17, 6, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (obj === 3) { // iron ore
+            ctx.fillStyle = '#5a3a2a';
+            ctx.fillRect(scr.x + 6, scr.y + 8, 20, 18);
+            ctx.fillStyle = '#d4a574';
+            ctx.beginPath();
+            ctx.arc(scr.x + 16, scr.y + 17, 5, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (obj === 10) { // campfire
+            ctx.fillStyle = '#ff6b2a';
+            ctx.fillRect(scr.x + 10, scr.y + 12, 12, 12);
+          } else if (obj === 11) { // chest
+            ctx.fillStyle = '#8b6914';
+            ctx.fillRect(scr.x + 8, scr.y + 10, 16, 14);
+            ctx.fillStyle = '#d4af37';
+            ctx.fillRect(scr.x + 12, scr.y + 13, 8, 3);
+          }
+        }
+      }
+
+      // Player
+      const pscr = worldToScreen(p.x, p.y);
+      ctx.fillStyle = '#f5d28e';
+      ctx.beginPath();
+      ctx.arc(pscr.x, pscr.y, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#3a2e28';
+      ctx.fillRect(pscr.x - 3, pscr.y - 12, 6, 10);
+
+      ctx.strokeStyle = '#ffff99';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(pscr.x, pscr.y);
+      ctx.lineTo(pscr.x + p.facing.x * 15, pscr.y + p.facing.y * 15);
+      ctx.stroke();
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px Arial';
+      ctx.fillText(`Lv${p.lv}`, pscr.x, pscr.y - 22);
+    }
+
+    // ============== EVENTS ==============
+    document.addEventListener('keydown', (e) => {
+      state.keys[e.code] = true;
+      if (e.code === 'KeyE') openInventory();
+      if (e.code === 'Space') { e.preventDefault(); useItem(); }
+      if (e.code === 'KeyF') attack();
+      if (e.code >= 'Digit1' && e.code <= 'Digit9') {
+        state.player.selected = Number(e.code.replace('Digit', '')) - 1;
+        if (state.inventoryOpen) renderInventory();
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      delete state.keys[e.code];
+    });
+
+    document.getElementById('invBtn').addEventListener('click', openInventory);
+    document.getElementById('useBtn').addEventListener('click', useItem);
+    document.getElementById('attackBtn').addEventListener('click', attack);
+
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.tab = btn.dataset.tab;
+        document.querySelectorAll('[data-tab]').forEach(b => 
+          b.classList.toggle('active', b === btn)
+        );
+        renderInventory();
+      });
+    });
+
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // ============== MAIN LOOP ==============
+    function loop(timestamp) {
+      const dt = Math.min(0.035, (timestamp - state.lastTime) / 1000 || 0.016);
+      state.lastTime = timestamp;
+
+      update(dt);
+      render();
+
+      requestAnimationFrame(loop);
+    }
+
+    // ============== INITIALIZATION ==============
+    function init() {
+      state.world = createWorld();
+      state.player.x = state.world.startX;
+      state.player.y = state.world.startY;
+      ensureInventory();
+
+      // Default starting items
+      addItem('axe', 1);
+      addItem('pickaxe', 1);
+      addItem('berry', 3);
+
+      renderInventory();
+      updateHUD();
+      requestAnimationFrame(loop);
+
+      // Auto-save
+      setInterval(() => {
+        localStorage.setItem('craftlands_save', JSON.stringify({
+          player: state.player,
+          world: state.world
+        }));
+      }, 5000);
+
+      toast('🎮 Welcome to Craftlands 3D v2.1!');
+    }
+
+    init();
+  </script>
+</body>
+</html>
